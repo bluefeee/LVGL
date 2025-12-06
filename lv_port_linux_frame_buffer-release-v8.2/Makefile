@@ -9,6 +9,8 @@ LDFLAGS ?= -lm
 BIN = demo
 BUILD_DIR = build
 
+# 自动创建 build 目录（关键：确保目录存在）
+$(shell mkdir -p $(BUILD_DIR))
 
 #Collect the files to compile
 MAINSRC = ./main.c
@@ -17,33 +19,33 @@ include $(LVGL_DIR)/lvgl/lvgl.mk
 include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
 
 CSRCS +=$(LVGL_DIR)/mouse_cursor_icon.c  
-# 关键修改：添加字体文件的相对路径（与 CSRCS += ... 一行同级）
-CSRCS += $(LVGL_DIR)/lvgl/src/font/SiYuanHeiTi_Heavy.c  # 新增：字体文件路径
+CSRCS += $(LVGL_DIR)/lvgl/src/font/SiYuanHeiTi_Heavy.c  # 字体文件
 
 OBJEXT ?= .o
 
-AOBJS = $(ASRCS:.S=$(OBJEXT))
-COBJS = $(CSRCS:.c=$(OBJEXT))
-
-
-MAINOBJ = $(MAINSRC:.c=$(OBJEXT))
+# 关键：所有 .o 输出到 build/ 目录（统一路径）
+AOBJS = $(addprefix $(BUILD_DIR)/, $(ASRCS:.S=$(OBJEXT)))
+COBJS = $(addprefix $(BUILD_DIR)/, $(CSRCS:.c=$(OBJEXT)))
+MAINOBJ = $(addprefix $(BUILD_DIR)/, $(MAINSRC:.c=$(OBJEXT)))
 
 SRCS = $(ASRCS) $(CSRCS) $(MAINSRC)
 OBJS = $(AOBJS) $(COBJS)
 
-## MAINOBJ -> OBJFILES
-
 all: default
 
-%.o: %.c
-	@$(CC)  $(CFLAGS) -c $< -o $@
-# 	@$(CC)  $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
-	@echo "CC $<"
-    
-default: $(AOBJS) $(COBJS) $(MAINOBJ) 
-	$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS)  $(LDFLAGS)
-# 	$(CC) -o $(BUILD_DIR)/$(BIN) $(BUILD_DIR)/$(MAINOBJ) $(BUILD_DIR)/$(AOBJS) $(BUILD_DIR)/$(COBJS) $(LDFLAGS)
-clean: 
-	rm -f $(BIN) $(AOBJS) $(COBJS) $(MAINOBJ)
-# 	rm -f $(BUILD_DIR)/$(BIN) $(BUILD_DIR)/$(AOBJS) $(BUILD_DIR)/$(COBJS) $(BUILD_DIR)/$(MAINOBJ)
+# 关键：编译规则，指定 .o 输出到 build/，并自动创建子目录
+$(BUILD_DIR)/%.o: %.c
+# 自动创建 build/lvgl/src/font/ 等子目录
+	@mkdir -p $(dir $@)  
+	@$(CC) $(CFLAGS) -c $< -o $@
+	@echo "CC $< -> $(dir $@)"
 
+# 链接：使用 build/ 下的所有 .o
+default: $(AOBJS) $(COBJS) $(MAINOBJ) 
+	$(CC) -o $(BIN) $^ $(LDFLAGS)
+	@echo "LINK -> $(BIN)"
+
+# 清理：删除 build/ 目录和可执行文件
+clean: 
+	rm -rf $(BUILD_DIR) $(BIN)
+	@echo "Clean done"
