@@ -9,23 +9,6 @@
 
 #define DISP_BUF_SIZE (128 * 1024)
 
-// 屏幕翻转状态标记
-static bool is_flipped = false;
-
-// 按钮点击事件处理函数：实现屏幕翻转（适配 LVGL 8.2）
-static void btn_event_handler(lv_event_t *e)
-{
-    if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
-        lv_obj_t *screen = lv_scr_act();
-        if (is_flipped) {
-            // 恢复旋转（正确参数：角度 + 部件|状态）
-            lv_obj_set_style_transform_angle(screen, 0, LV_PART_MAIN);
-        } else {
-            // 180度旋转（单位0.1度）
-            lv_obj_set_style_transform_angle(screen, 1800, LV_PART_MAIN);
-        }
-    }
-}
 
 // 创建UI函数：显示文本和按钮（适配 LVGL 8.2）
 static void create_ui(void)
@@ -35,25 +18,15 @@ static void create_ui(void)
 
     // 文本（修复字体参数）
     lv_obj_t *label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "Hello LVGL!");
+    lv_label_set_text(label, "你好,LVGL!");
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 50);
+    LV_FONT_DECLARE(SiYuanHeiTi_Heavy);
     // 正确设置字体：加 & 取地址，指定部件和状态
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(label,&SiYuanHeiTi_Heavy, LV_PART_MAIN | LV_STATE_DEFAULT);
     // 文本颜色
     lv_obj_set_style_text_color(label, lv_color_hex(0x00ff00), LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    // 按钮
-    lv_obj_t *btn = lv_btn_create(lv_scr_act());
-    lv_obj_set_size(btn, 150, 50);
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_add_event_cb(btn, btn_event_handler, LV_EVENT_CLICKED, NULL);
-
-    // 按钮文字
-    lv_obj_t *btn_label = lv_label_create(btn);
-    lv_label_set_text(btn_label, "翻转屏幕");
-    lv_obj_center(btn_label);
-    lv_obj_set_style_text_font(btn_label, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
-}
+   }
 
 int main(void)
 {

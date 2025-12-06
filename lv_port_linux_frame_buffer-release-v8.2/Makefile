@@ -16,12 +16,15 @@ MAINSRC = ./main.c
 include $(LVGL_DIR)/lvgl/lvgl.mk
 include $(LVGL_DIR)/lv_drivers/lv_drivers.mk
 
-CSRCS +=$(LVGL_DIR)/mouse_cursor_icon.c 
+CSRCS +=$(LVGL_DIR)/mouse_cursor_icon.c  
+# 关键修改：添加字体文件的相对路径（与 CSRCS += ... 一行同级）
+CSRCS += $(LVGL_DIR)/lvgl/src/font/SiYuanHeiTi_Heavy.c  # 新增：字体文件路径
 
 OBJEXT ?= .o
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
+
 
 MAINOBJ = $(MAINSRC:.c=$(OBJEXT))
 
@@ -37,8 +40,8 @@ all: default
 # 	@$(CC)  $(CFLAGS) -c $< -o $(BUILD_DIR)/$@
 	@echo "CC $<"
     
-default: $(AOBJS) $(COBJS) $(MAINOBJ)
-	$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS) $(LDFLAGS)
+default: $(AOBJS) $(COBJS) $(MAINOBJ) 
+	$(CC) -o $(BIN) $(MAINOBJ) $(AOBJS) $(COBJS)  $(LDFLAGS)
 # 	$(CC) -o $(BUILD_DIR)/$(BIN) $(BUILD_DIR)/$(MAINOBJ) $(BUILD_DIR)/$(AOBJS) $(BUILD_DIR)/$(COBJS) $(LDFLAGS)
 clean: 
 	rm -f $(BIN) $(AOBJS) $(COBJS) $(MAINOBJ)
