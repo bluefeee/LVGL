@@ -9,51 +9,92 @@
 
 #define DISP_BUF_SIZE (128 * 1024)
 
+// 屏幕翻转状态标记
+static bool is_flipped = false;
+
+// 按钮点击事件处理函数：实现屏幕翻转（适配 LVGL 8.2）
+static void btn_event_handler(lv_event_t *e)
+{
+    if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+        lv_obj_t *screen = lv_scr_act();
+        if (is_flipped) {
+            // 恢复旋转（正确参数：角度 + 部件|状态）
+            lv_obj_set_style_transform_angle(screen, 0, LV_PART_MAIN);
+        } else {
+            // 180度旋转（单位0.1度）
+            lv_obj_set_style_transform_angle(screen, 1800, LV_PART_MAIN);
+        }
+    }
+}
+
+// 创建UI函数：显示文本和按钮（适配 LVGL 8.2）
+static void create_ui(void)
+{
+    // 屏幕背景
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // 文本（修复字体参数）
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Hello LVGL!");
+    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 50);
+    // 正确设置字体：加 & 取地址，指定部件和状态
+    lv_obj_set_style_text_font(label, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+    // 文本颜色
+    lv_obj_set_style_text_color(label, lv_color_hex(0x00ff00), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // 按钮
+    lv_obj_t *btn = lv_btn_create(lv_scr_act());
+    lv_obj_set_size(btn, 150, 50);
+    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_event_cb(btn, btn_event_handler, LV_EVENT_CLICKED, NULL);
+
+    // 按钮文字
+    lv_obj_t *btn_label = lv_label_create(btn);
+    lv_label_set_text(btn_label, "翻转屏幕");
+    lv_obj_center(btn_label);
+    lv_obj_set_style_text_font(btn_label, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
+}
+
 int main(void)
 {
-    /*LittlevGL init*/
+    /*LittlevGL初始化*/
     lv_init();
 
-    /*Linux frame buffer device init*/
+    /*Linux帧缓冲设备初始化*/
     fbdev_init();
 
-    /*A small buffer for LittlevGL to draw the screen's content*/
+    /*为LittlevGL创建屏幕缓冲区*/
     static lv_color_t buf[DISP_BUF_SIZE];
-
-    /*Initialize a descriptor for the buffer*/
     static lv_disp_draw_buf_t disp_buf;
     lv_disp_draw_buf_init(&disp_buf, buf, NULL, DISP_BUF_SIZE);
 
-    /*Initialize and register a display driver*/
+    /*初始化并注册显示驱动*/
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
     disp_drv.draw_buf   = &disp_buf;
     disp_drv.flush_cb   = fbdev_flush;
-    disp_drv.hor_res    = 800;
-    disp_drv.ver_res    = 480;
+    disp_drv.hor_res    = 800;    // 屏幕宽度
+    disp_drv.ver_res    = 480;    // 屏幕高度
     lv_disp_drv_register(&disp_drv);
 
+    /*初始化输入设备（触摸/鼠标）*/
     evdev_init();
     static lv_indev_drv_t indev_drv_1;
-    lv_indev_drv_init(&indev_drv_1); /*Basic initialization*/
+    lv_indev_drv_init(&indev_drv_1);
     indev_drv_1.type = LV_INDEV_TYPE_POINTER;
-
-    /*This function will be called periodically (by the library) to get the mouse position and state*/
     indev_drv_1.read_cb = evdev_read;
     lv_indev_t *mouse_indev = lv_indev_drv_register(&indev_drv_1);
 
-
-    /*Set a cursor for the mouse*/
+    /*设置鼠标光标*/
     LV_IMG_DECLARE(mouse_cursor_icon)
-    lv_obj_t * cursor_obj = lv_img_create(lv_scr_act()); /*Create an image object for the cursor */
-    lv_img_set_src(cursor_obj, &mouse_cursor_icon);           /*Set the image source*/
-    lv_indev_set_cursor(mouse_indev, cursor_obj);             /*Connect the image  object to the driver*/
+    lv_obj_t *cursor_obj = lv_img_create(lv_scr_act());
+    lv_img_set_src(cursor_obj, &mouse_cursor_icon);
+    lv_indev_set_cursor(mouse_indev, cursor_obj);
 
+    /*创建UI界面*/
+    create_ui();
 
-    /*Create a Demo*/
-    lv_demo_widgets();
-
-    /*Handle LitlevGL tasks (tickless mode)*/
+    /*处理LVGL任务*/
     while(1) {
         lv_timer_handler();
         usleep(5000);
@@ -62,7 +103,7 @@ int main(void)
     return 0;
 }
 
-/*Set in lv_conf.h as `LV_TICK_CUSTOM_SYS_TIME_EXPR`*/
+/*LVGL系统时间获取函数*/
 uint32_t custom_tick_get(void)
 {
     static uint64_t start_ms = 0;
